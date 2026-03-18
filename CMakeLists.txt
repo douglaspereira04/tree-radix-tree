@@ -12,12 +12,20 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# AVX2 for x86/x64 (Intel/AMD)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|i[3-6]86)")
+    set(AVX2_FLAG "-mavx2")
+else()
+    set(AVX2_FLAG "")
+endif()
+
 # Core library target (header-only template, no .cpp needed)
 add_library(trie-kv-core INTERFACE)
 
 target_compile_features(trie-kv-core INTERFACE cxx_std_20)
 target_compile_options(trie-kv-core INTERFACE
     -Wall -Wextra -Wpedantic
+    ${AVX2_FLAG}
     $<$<CONFIG:Debug>:-g -O0>
     $<$<CONFIG:Release>:-O2>
 )
@@ -33,15 +41,20 @@ target_link_libraries(trie-kv-main PRIVATE trie-kv-core)
 target_compile_features(trie-kv-main PRIVATE cxx_std_20)
 target_compile_options(trie-kv-main PRIVATE -Wall -Wextra -Wpedantic)
 
-# Interactive radix tree shell
-add_executable(trie-interactive interactive.cpp)
-target_link_libraries(trie-interactive PRIVATE trie-kv-core)
-target_compile_features(trie-interactive PRIVATE cxx_std_20)
-target_compile_options(trie-interactive PRIVATE -Wall -Wextra -Wpedantic)
-
 # Radix tree tests
 add_executable(test_radix_tree test/test_radix_tree.cpp)
 target_link_libraries(test_radix_tree PRIVATE trie-kv-core)
 target_compile_features(test_radix_tree PRIVATE cxx_std_20)
 target_compile_options(test_radix_tree PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(test_radix_tree PRIVATE ${CMAKE_SOURCE_DIR})
+
+add_executable(interactive test/interactive.cpp)
+target_link_libraries(interactive PRIVATE trie-kv-core)
+target_compile_features(interactive PRIVATE cxx_std_20)
+target_compile_options(interactive PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(interactive PRIVATE ${CMAKE_SOURCE_DIR})
+
+# Benchmarks
+add_executable(benchmark_prefix benchmarks/benchmark_prefix.cpp)
+target_link_libraries(benchmark_prefix PRIVATE trie-kv-core)
+target_include_directories(benchmark_prefix PRIVATE ${CMAKE_SOURCE_DIR})

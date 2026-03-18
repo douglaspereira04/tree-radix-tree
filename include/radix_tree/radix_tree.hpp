@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "../utils.hpp"
 #include "node.hpp"
 
 namespace radix_tree {
@@ -25,17 +26,6 @@ public:
 private:
     Node_ root_;
 };
-
-inline size_t commom_prefix_length(const std::string_view key1,
-                                   const std::string_view key2) {
-    size_t min_length = std::min(key1.size(), key2.size());
-    for (size_t i = 0; i < min_length; i++) {
-        if (key1[i] != key2[i]) {
-            return i;
-        }
-    }
-    return min_length;
-}
 
 template <typename Value, template <typename K, typename V> class MapType> void
 RadixTree<Value, MapType>::put(const std::string &key, const Value &value) {
@@ -82,31 +72,30 @@ RadixTree<Value, MapType>::put(const std::string &key, const Value &value) {
     while (key_char_index < key.size()) {
 
         std::string_view key_label(key_view.substr(key_char_index + 1));
-        size_t common_prefix_length =
-            commom_prefix_length(node->label, key_label);
+        size_t common_prefix = common_prefix_length(node->label, key_label);
 
-        if (common_prefix_length == node->label.size()) {
+        if (common_prefix == node->label.size()) {
 
-            if (common_prefix_length == key_label.size()) {
+            if (common_prefix == key_label.size()) {
                 // found
                 node->value = value;
                 node->has_value = true;
                 return;
             }
 
-            char next_key_char = key_label[common_prefix_length];
+            char next_key_char = key_label[common_prefix];
             auto next_node_it = node->children.find(next_key_char);
             if (next_node_it != node->children.end()) {
                 // there is a child node with the next key character
                 node = next_node_it->second;
-                key_char_index += common_prefix_length + 1;
+                key_char_index += common_prefix + 1;
                 continue;
             }
 
             // no child node with the next key character
             // branching from here
             Node_ *new_node =
-                new Node_(key_label.substr(common_prefix_length + 1), value);
+                new Node_(key_label.substr(common_prefix + 1), value);
             new_node->has_value = true;
             node->children[next_key_char] = new_node;
             return;
@@ -121,13 +110,13 @@ RadixTree<Value, MapType>::put(const std::string &key, const Value &value) {
             new Node_(std::move(node->label), std::move(node->value),
                       std::move(node->children));
         new_node->has_value = node->has_value;
-        char new_node_key_char = new_node->label[common_prefix_length];
-        new_node->label.erase(0, common_prefix_length + 1);
+        char new_node_key_char = new_node->label[common_prefix];
+        new_node->label.erase(0, common_prefix + 1);
 
         node->clear_map();
         node->children[new_node_key_char] = new_node;
 
-        if (common_prefix_length == key_label.size()) {
+        if (common_prefix == key_label.size()) {
             // existing node will hold the new key value
             node->label = key_label;
             node->value = value;
@@ -137,13 +126,13 @@ RadixTree<Value, MapType>::put(const std::string &key, const Value &value) {
         }
 
         // existing node will be just a linking between two branches
-        node->label = key_label.substr(0, common_prefix_length);
+        node->label = key_label.substr(0, common_prefix);
         node->has_value = false;
 
         // new branch
         Node_ *new_right_node =
-            new Node_(key_label.substr(common_prefix_length + 1), value);
-        node->children[key_label[common_prefix_length]] = new_right_node;
+            new Node_(key_label.substr(common_prefix + 1), value);
+        node->children[key_label[common_prefix]] = new_right_node;
         new_right_node->has_value = true;
 
         return;
@@ -179,23 +168,22 @@ RadixTree<Value, MapType>::get(const std::string &key, Value &value) const {
     while (key_char_index < key.size()) {
 
         std::string_view key_label(key_view.substr(key_char_index + 1));
-        size_t common_prefix_length =
-            commom_prefix_length(node->label, key_label);
+        size_t common_prefix = common_prefix_length(node->label, key_label);
 
-        if (common_prefix_length == node->label.size()) {
+        if (common_prefix == node->label.size()) {
 
-            if (common_prefix_length == key_label.size()) {
+            if (common_prefix == key_label.size()) {
                 // found
                 value = node->value;
                 return node->has_value;
             }
 
-            char next_key_char = key_label[common_prefix_length];
+            char next_key_char = key_label[common_prefix];
             auto next_node_it = node->children.find(next_key_char);
             if (next_node_it != node->children.end()) {
                 // there is a child node with the next key character
                 node = next_node_it->second;
-                key_char_index += common_prefix_length + 1;
+                key_char_index += common_prefix + 1;
                 continue;
             }
             return false;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <sstream>
 #include <string>
@@ -21,7 +22,18 @@ public:
     bool get(const std::string &key, Value &value) const;
     bool scan(const std::string &prefix,
               std::vector<std::pair<std::string, Value>> &results) const;
+    bool scan(const std::string &start, const std::string &end,
+              std::vector<std::pair<std::string, Value>> &results) const;
     std::string to_string() const;
+
+
+    //scans from a node between a start and end
+    bool scan(const std::string_view &prefix, Node_ *node, const std::string_view &start, const std::string_view &end,
+        std::vector<std::pair<std::string, Value>> &results) const;
+
+    //scans all from a node
+    bool scan(const std::string_view &prefix, Node_ *node,
+        std::vector<std::pair<std::string, Value>> &results) const;
 
 private:
     Node_ root_;
@@ -201,6 +213,96 @@ bool RadixTree<Value, MapType>::scan(
     (void)results;
     // unimplemented
     return false;
+}
+
+
+template <typename Value, template <typename K, typename V> class MapType>
+bool RadixTree<Value, MapType>::scan(const std::string_view &prefix, Node_ *node,
+    const std::string_view &start, const std::string_view &end,
+    std::vector<std::pair<std::string, Value>> &results) const {
+    
+    std::string_view label_view(node->label);
+
+    if (label_view <= end) {
+
+        size_t common_prefix = common_prefix_length(label_view, start);
+        size_t label_size = label_view.size();
+        if (label_view.substr(common_prefix) >= start.substr(common_prefix)) {
+            if (node->has_value) {
+                results.push_back({prefix + node->label, node->value});
+            }
+
+            std::string next_prefix = prefix + node->label + ' ';
+            for (const auto &[key, child] : node->children) {
+                if (key >= start[label_size] && key <= end[label_size]) {
+                    next_prefix[next_prefix.size() - 1] = key;
+                    scan(next_prefix, child, results);
+                }
+            }
+            return true;
+        }
+
+
+        if (common_prefix == label_size) {
+            std::string next_prefix = prefix + node->label + ' ';
+            
+            for (const auto &[key, child] : node->children) {
+                if (key >= start[label_size] && key <= end[label_size]) {
+                    next_prefix[next_prefix.size() - 1] = key;
+                    scan(next_prefix, start.substr(common_prefix + 1), end.substr(common_prefix + 1), child, results);
+                }
+            }
+            return true;
+        }
+    }
+
+
+    
+}
+
+
+
+
+template <typename Value, template <typename K, typename V> class MapType>
+bool RadixTree<Value, MapType>::scan(const std::string_view &prefix, Node_ *node,
+    std::vector<std::pair<std::string, Value>> &results) const {
+    
+    
+    std::string_view label_view(node->label);
+    if (label_view <= end) {
+        if (node->has_value) {
+            results.push_back({prefix + node->label, node->value});
+        }
+
+        std::string_view next_end = end.substr(label_view.size());
+        for (const auto &[key, child] : node->children) {
+            if (key <= next_end[0]) {
+                scan(prefix + key, child, next_end, results);
+            }
+        }
+    }
+}
+
+template <typename Value, template <typename K, typename V> class MapType>
+bool RadixTree<Value, MapType>::scan(
+    const std::string &start, const std::string &end,
+    std::vector<std::pair<std::string, Value>> &results) const {
+    const Node_ *node = &root_;
+    std::string_view start_view(start);
+    std::string_view end_view(end);
+    size_t key_char_index = 0;
+
+    auto next_node_it = node->children.lower_bound(start_view[0]);
+    if (next_node_it == node->children.end()) {
+        return false;
+    }
+    node = next_node_it->second;
+
+    
+    
+
+
+
 }
 
 namespace {

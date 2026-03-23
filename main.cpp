@@ -1,11 +1,10 @@
-#include "radix_tree/radix_tree.hpp"
+#include "ll_trie/ll_trie.hpp"
+#include <string>
 
 int main() {
-    radix_tree::RadixTree<std::string> t;
-    t.put("key", "value");
-    std::string v;
-    (void)t.get("key", v);
-    std::vector<std::pair<std::string, std::string>> results;
-    (void)t.scan("k", results);
+    ll_trie::LLTrie<std::string> t;
+    t.insert({"key", "value"});
+    auto it = t.find("key");
+    (void)(it != t.end());
     return 0;
 }

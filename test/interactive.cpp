@@ -1,8 +1,9 @@
-#include "radix_tree/radix_tree.hpp"
+#include "ll_trie/ll_trie.hpp"
 
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 void print_help() {
     std::cout << "Commands:\n"
@@ -15,9 +16,9 @@ void print_help() {
 }
 
 int main() {
-    radix_tree::RadixTree<std::string> tree;
+    ll_trie::LLTrie<std::string> tree;
 
-    std::cout << "Radix tree interactive shell. Type 'help' for commands.\n\n";
+    std::cout << "LLTrie interactive shell. Type 'help' for commands.\n\n";
 
     std::string line;
     while (std::cout << "> " && std::getline(std::cin, line)) {
@@ -34,14 +35,14 @@ int main() {
             continue;
         }
         if (cmd == "print" || cmd == "tree" || cmd == "p") {
-            std::cout << tree.to_string() << '\n';
+            std::cout << tree.tree_string() << '\n';
             continue;
         }
         if (cmd == "put") {
             std::string key, value;
             if (iss >> key) {
                 std::getline(iss >> std::ws, value);
-                tree.put(key, value.empty() ? "" : value);
+                tree.insert_or_assign(key, value.empty() ? "" : value);
                 std::cout << "OK\n";
             } else {
                 std::cout << "Usage: put <key> <value>\n";
@@ -51,9 +52,9 @@ int main() {
         if (cmd == "get") {
             std::string key;
             if (iss >> key) {
-                std::string value;
-                if (tree.get(key, value)) {
-                    std::cout << value << '\n';
+                auto it = tree.find(key);
+                if (it != tree.end()) {
+                    std::cout << it->second << '\n';
                 } else {
                     std::cout << "(not found)\n";
                 }
@@ -66,7 +67,12 @@ int main() {
             std::string prefix;
             if (iss >> prefix) {
                 std::vector<std::pair<std::string, std::string>> results;
-                tree.scan(prefix, results);
+                for (auto it = tree.lower_bound(prefix); it != tree.end();
+                     ++it) {
+                    if (it->first.compare(0, prefix.size(), prefix) != 0)
+                        break;
+                    results.push_back({it->first, it->second});
+                }
                 for (const auto &[k, v] : results) {
                     std::cout << "  " << k << " → " << v << '\n';
                 }

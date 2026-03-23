@@ -41,18 +41,18 @@ target_link_libraries(trie-kv-main PRIVATE trie-kv-core)
 target_compile_features(trie-kv-main PRIVATE cxx_std_20)
 target_compile_options(trie-kv-main PRIVATE -Wall -Wextra -Wpedantic)
 
-# Radix tree tests
-add_executable(test_radix_tree test/test_radix_tree.cpp)
-target_link_libraries(test_radix_tree PRIVATE trie-kv-core)
-target_compile_features(test_radix_tree PRIVATE cxx_std_20)
-target_compile_options(test_radix_tree PRIVATE -Wall -Wextra -Wpedantic)
-target_include_directories(test_radix_tree PRIVATE ${CMAKE_SOURCE_DIR})
-
 add_executable(interactive test/interactive.cpp)
 target_link_libraries(interactive PRIVATE trie-kv-core)
 target_compile_features(interactive PRIVATE cxx_std_20)
 target_compile_options(interactive PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(interactive PRIVATE ${CMAKE_SOURCE_DIR})
+
+# LLTrie map interface tests
+add_executable(test_map test/test_map.cpp)
+target_link_libraries(test_map PRIVATE trie-kv-core)
+target_compile_features(test_map PRIVATE cxx_std_20)
+target_compile_options(test_map PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(test_map PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Benchmarks
 add_executable(benchmark_prefix benchmarks/benchmark_prefix.cpp)

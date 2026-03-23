@@ -1,6 +1,7 @@
 #include "../utils/test_assertions.h"
 #include "ll_trie/ll_trie.hpp"
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -259,6 +260,72 @@ template <typename Map> void test_lower_bound_no_key_gte_query_after_prefix() {
     END_TEST("lower_bound_no_key_gte_query_after_prefix")
 }
 
+/** Insert order affects sibling "next" links. This sequence (from test_random
+ * seed 42 up to iter 29) left a bug where forward iteration from
+ * lower_bound("0304") skipped "0597" (jumped 0467 -> 0680). std::map order:
+ * 0400, 0467, 0597, 0680, 0797, 0984. */
+template <typename Map>
+void test_forward_iteration_matches_map_after_insert_order() {
+    TEST("forward_iteration_matches_map_after_insert_order")
+    static const char *const kInsertOrder[] = {"0797", "0597", "0007", "0023",
+                                               "0400", "0233", "0090", "0984",
+                                               "0467", "0680"};
+    Map t;
+    std::map<std::string, std::string> ref;
+    for (auto k : kInsertOrder) {
+        t.insert({k, k});
+        ref.insert({k, k});
+    }
+
+    const std::string start = "0304";
+    std::vector<std::pair<std::string, std::string>> from_ref;
+    std::vector<std::pair<std::string, std::string>> from_trie;
+    for (auto it = ref.lower_bound(start); it != ref.end(); ++it)
+        from_ref.emplace_back(it->first, it->second);
+    for (auto it = t.lower_bound(start); it != t.end(); ++it)
+        from_trie.emplace_back(it->first, it->second);
+
+    ASSERT_EQ(static_cast<int>(from_ref.size()),
+              static_cast<int>(from_trie.size()));
+    for (size_t i = 0; i < from_ref.size(); ++i) {
+        ASSERT_STR_EQ(from_ref[i].first, from_trie[i].first);
+        ASSERT_STR_EQ(from_ref[i].second, from_trie[i].second);
+    }
+    END_TEST("forward_iteration_matches_map_after_insert_order")
+}
+
+/** Minimal: 3 keys, 2 characters each (cannot do with 2 keys: need 3+ values to
+ * observe a skip). Insert order "46", "68", "59" — lex order is 46, 59, 68, but
+ * inserting the "5" branch after "6" mis-links "next", so iteration from
+ * lower_bound("30") skips "46" (map: 46, 59, 68). Same class of bug as the
+ * longer 10-key case. */
+template <typename Map> void test_minimal_next_chain_iterate_matches_map() {
+    TEST("minimal_next_chain_iterate_matches_map")
+    static const char *const kOrder[] = {"46", "68", "59"};
+    Map t;
+    std::map<std::string, std::string> ref;
+    for (auto k : kOrder) {
+        t.insert({k, k});
+        ref.insert({k, k});
+    }
+
+    const std::string start = "30";
+    std::vector<std::pair<std::string, std::string>> from_ref;
+    std::vector<std::pair<std::string, std::string>> from_trie;
+    for (auto it = ref.lower_bound(start); it != ref.end(); ++it)
+        from_ref.emplace_back(it->first, it->second);
+    for (auto it = t.lower_bound(start); it != t.end(); ++it)
+        from_trie.emplace_back(it->first, it->second);
+
+    ASSERT_EQ(static_cast<int>(from_ref.size()),
+              static_cast<int>(from_trie.size()));
+    for (size_t i = 0; i < from_ref.size(); ++i) {
+        ASSERT_STR_EQ(from_ref[i].first, from_trie[i].first);
+        ASSERT_STR_EQ(from_ref[i].second, from_trie[i].second);
+    }
+    END_TEST("minimal_next_chain_iterate_matches_map")
+}
+
 template <typename Map> void run_map_test_suite(const std::string &map_name) {
     std::vector<std::pair<std::string, TestFunction>> tests = {
         {"basic_put_get", []() { test_basic_put_get<Map>(); }},
@@ -275,6 +342,12 @@ template <typename Map> void run_map_test_suite(const std::string &map_name) {
         {"tree_string", []() { test_tree_string<Map>(); }},
         {"lower_bound_no_key_gte_query_after_prefix",
          []() { test_lower_bound_no_key_gte_query_after_prefix<Map>(); }},
+        {"forward_iteration_matches_map_after_insert_order",
+         []() {
+             test_forward_iteration_matches_map_after_insert_order<Map>();
+         }},
+        {"minimal_next_chain_iterate_matches_map",
+         []() { test_minimal_next_chain_iterate_matches_map<Map>(); }},
     };
 
     run_test_suite(map_name, tests);

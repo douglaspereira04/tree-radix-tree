@@ -8,8 +8,8 @@
 #include <utility>
 
 #include "node.hpp"
+#include "utils.hpp"
 
-#include <iostream>
 namespace ll_trie {
 
 // References into ArrayType entries (same object as *value_it); STL-like map
@@ -86,33 +86,33 @@ public:
     }
 
     Node_ *next_geq_value_node(Node_ *node, const std::string &k) {
-        std::cout << "next_greater_value_node: " << node->label << std::endl;
+        UTILS_LOG("next_greater_value_node: " + node->label);
         while (node != nullptr) {
-            std::cout << "Node: " << node->label << std::endl;
-            std::cout << "Node has value: " << node->has_value << std::endl;
-            std::cout << "Node label: " << node->label << std::endl;
-            std::cout << "k: " << k << std::endl;
+            UTILS_LOG("Node: " + node->label);
+            UTILS_LOG("Node has value: " + std::to_string(node->has_value));
+            UTILS_LOG("Node label: " + node->label);
+            UTILS_LOG("k: " + k);
             if (node->has_value && node->label >= k) {
-                std::cout << "Found node: " << node->label << std::endl;
+                UTILS_LOG("Found node: " + node->label);
                 return node;
             }
             node = node->next;
         }
-        std::cout << "No node found" << std::endl;
+        UTILS_LOG("No node found");
         return nullptr;
     }
 
     Node_ *next_value_node(Node_ *node) {
-        std::cout << "next_value_node: " << node->label << std::endl;
+        UTILS_LOG("next_value_node: " + node->label);
         while (node != nullptr && !node->has_value) {
-            std::cout << "Next node: " << node->label << std::endl;
+            UTILS_LOG("Next node: " + node->label);
             node = node->next;
         }
         return node;
     }
 
     Node_ *lower_bound_node(const std::string &k) {
-        std::cout << "lower_bound_node: " << k << std::endl;
+        UTILS_LOG("lower_bound_node: " + k);
         size_t k_char_idx = 0;
 
         Node_ *node = &root_;
@@ -120,13 +120,13 @@ public:
             char k_char = k[k_char_idx];
             auto next_node_it = node->children.lower_bound(k_char);
             if (next_node_it != node->children.end()) {
-                std::cout << "Found char: " << next_node_it->first << std::endl;
+                UTILS_LOG(std::string("Found char: ") + next_node_it->first);
                 char lower_bound_char = next_node_it->first;
                 Node_ *next_node = next_node_it->second;
                 if (lower_bound_char > k_char) {
-                    std::cout << "Lower bound char is greater than k char. "
-                                 "Returning next value node: "
-                              << std::endl;
+                    UTILS_LOG(
+                        "Lower bound char is greater than k char. Returning "
+                        "next value node: ");
                     return next_value_node(next_node);
                 }
                 node = next_node;
@@ -135,7 +135,7 @@ public:
             }
             break;
         }
-        std::cout << "Last found node: " << node->label << std::endl;
+        UTILS_LOG("Last found node: " + node->label);
         return next_geq_value_node(node, k);
     }
 
@@ -169,11 +169,11 @@ public:
         size_t k_char_idx = 0;
 
         Node_ *node = &root_;
-        std::cout << "traverse_creating: " << k << std::endl;
+        UTILS_LOG("traverse_creating: " + k);
         while (k_char_idx < k.size()) {
             char k_char = k[k_char_idx];
-            std::cout << "node: " << node->label << std::endl;
-            std::cout << "char: " << k_char << std::endl;
+            UTILS_LOG("node: " + node->label);
+            UTILS_LOG(std::string("char: ") + k_char);
             auto next_node_it = node->children.find(k_char);
             if (next_node_it != node->children.end()) {
                 // Advance to the next node
@@ -187,36 +187,35 @@ public:
             // Adjust the next pointers
             Node_ *new_node = new Node_();
             new_node->label = k.substr(0, k_char_idx + 1);
-            std::cout << "No child node with char. Creating new node: "
-                      << new_node->label << std::endl;
+            UTILS_LOG("No child node with char. Creating new "
+                      "node: " +
+                      new_node->label);
             auto children_it = node->children.upper_bound(k_char);
             if (children_it != node->children.end()) {
                 new_node->next = children_it->second;
-                std::cout << "Next of new node: " << new_node->next->label
-                          << std::endl;
+                UTILS_LOG("Next of new node: " + new_node->next->label);
                 if (children_it != node->children.begin()) {
-                    std::cout << "New node will be in the middle" << std::endl;
+                    UTILS_LOG("New node will be in the middle");
                     --children_it;
-                    children_it->second->next = new_node;
+                    Node_ *rightmost_node =
+                        traverse_rightmost(children_it->second);
+                    rightmost_node->next = new_node;
                 } else {
-                    std::cout << "New node will be the first" << std::endl;
+                    UTILS_LOG("New node will be the first");
                     node->next = new_node;
                 }
             } else if (node->children.size() > 0) {
-                std::cout << "New node will be the last, after the last child"
-                          << std::endl;
+                UTILS_LOG("New node will be the last, after the last child");
                 Node_ *rightmost_node = traverse_rightmost(node);
                 new_node->next = rightmost_node->next;
                 rightmost_node->next = new_node;
             } else {
-                std::cout << "New node will be the last, and first"
-                          << std::endl;
+                UTILS_LOG("New node will be the last, and first");
                 new_node->next = node->next;
                 node->next = new_node;
             }
 
             node->children[k_char] = new_node;
-            size_++;
 
             node = new_node;
             k_char_idx++;

@@ -6,6 +6,8 @@ set -e  # Exit on any error
 
 # Default build type
 BUILD_TYPE="Release"
+# Extra CMake defines (e.g. -DDEBUG_LOG=ON)
+CMAKE_EXTRA_ARGS=()
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -18,12 +20,17 @@ while [[ $# -gt 0 ]]; do
             BUILD_TYPE="Release"
             shift
             ;;
+        -l|--debug-log)
+            CMAKE_EXTRA_ARGS+=(-DDEBUG_LOG=ON)
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
-            echo "  -d, --debug     Build in Debug mode (no optimizations, with debug symbols)"
-            echo "  -r, --release   Build in Release mode (optimizations enabled) [default]"
-            echo "  -h, --help      Show this help message"
+            echo "  -d, --debug       Build in Debug mode (no optimizations, with debug symbols)"
+            echo "  -r, --release     Build in Release mode (optimizations enabled) [default]"
+            echo "  -l, --debug-log   Enable LLTrie UTILS_LOG macro (CMake DEBUG_LOG=ON)"
+            echo "  -h, --help        Show this help message"
             exit 0
             ;;
         *)
@@ -42,7 +49,7 @@ cd build
 
 # Configure with CMake
 echo "Configuring project with CMake (Build type: $BUILD_TYPE)..."
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE "${CMAKE_EXTRA_ARGS[@]}" ..
 
 # Format code with clang-format
 echo "Formatting code with clang-format..."

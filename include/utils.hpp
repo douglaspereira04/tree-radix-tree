@@ -1,6 +1,19 @@
 #pragma once
 
+#include <string>
 #include <string_view>
+
+#if defined(DEBUG_LOG)
+#include <iostream>
+/** Prints msg to stdout. When DEBUG_LOG is off, expands to nothing and does not
+ * evaluate msg. */
+#define UTILS_LOG(msg)                                                         \
+    do {                                                                       \
+        std::cout << (msg) << '\n';                                            \
+    } while (0)
+#else
+#define UTILS_LOG(msg) ((void)0)
+#endif
 
 namespace {
 

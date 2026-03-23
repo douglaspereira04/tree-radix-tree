@@ -1,17 +1,41 @@
 #include "../utils/test_assertions.h"
 #include "ll_trie/ll_trie.hpp"
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <random>
 #include <string>
+#include <thread>
 #include <vector>
 
+std::atomic<int> ITER = 0;
 int tests_passed = 0;
 int tests_failed = 0;
 
 namespace {
 
-constexpr int MAX_KEY = 1000;
+const int FACTOR = 1000;
+const int MAX_KEY = 100 * FACTOR;
+const int SCAN_MAX_LENGTH = 1 * FACTOR;
+const int ITERATIONS = 1000 * FACTOR;
+std::atomic<int> ITER = 0;
+
+void random_iteration_monitor() {
+    int last_iter = ITER;
+    while (ITER < ITERATIONS) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        if (ITER == last_iter) {
+            std::cerr
+                << "test_random: iteration count unchanged for 1s (stuck at "
+                << ITER << "), aborting\n";
+            std::abort();
+        }
+        std::cout << ITER - last_iter << " iterations per second\n";
+        last_iter = ITER;
+    }
+}
 
 std::string key_from_int(int n) {
     const int width = static_cast<int>(std::to_string(MAX_KEY).size());
@@ -23,17 +47,18 @@ std::string key_from_int(int n) {
 
 void test_random() {
     TEST("test_random")
+
+    std::thread monitor_thread(random_iteration_monitor);
+
     std::map<std::string, std::string> ref;
     ll_trie::LLTrie<std::string> trie;
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> op_dist(0, 2);
     std::uniform_int_distribution<int> key_dist(0, MAX_KEY);
-    std::uniform_int_distribution<int> scan_len_dist(1, 1000);
+    std::uniform_int_distribution<int> scan_len_dist(1, SCAN_MAX_LENGTH);
 
-    constexpr int iterations = 50000;
-
-    for (int iter = 0; iter < iterations; ++iter) {
+    for (ITER = 0; ITER < ITERATIONS; ++ITER) {
         try {
             const int op = op_dist(rng);
             const int k = key_dist(rng);
@@ -81,9 +106,10 @@ void test_random() {
             }
         } catch (const std::exception &e) {
             throw std::runtime_error(std::string("iteration ") +
-                                     std::to_string(iter) + ": " + e.what());
+                                     std::to_string(ITER) + ": " + e.what());
         }
     }
+    monitor_thread.join();
     END_TEST("test_random")
 }
 

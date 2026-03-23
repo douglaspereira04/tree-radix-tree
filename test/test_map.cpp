@@ -243,6 +243,22 @@ template <typename Map> void test_tree_string() {
     END_TEST("tree_string")
 }
 
+/** lower_bound("0833") must be end(): keys "0597" and "0797" are the only
+ * entries; they share prefix "0", but the next query digit '8' is greater than
+ * every third digit among children ('5','7'). std::map has no key >= "0833";
+ * LLTrie must match. (A buggy trie may wrongly return the first value under
+ * "0".) */
+template <typename Map> void test_lower_bound_no_key_gte_query_after_prefix() {
+    TEST("lower_bound_no_key_gte_query_after_prefix")
+    Map t;
+    t.insert({"0597", "0597"});
+    t.insert({"0797", "0797"});
+
+    auto it = t.lower_bound("0833");
+    ASSERT_TRUE(it == t.end());
+    END_TEST("lower_bound_no_key_gte_query_after_prefix")
+}
+
 template <typename Map> void run_map_test_suite(const std::string &map_name) {
     std::vector<std::pair<std::string, TestFunction>> tests = {
         {"basic_put_get", []() { test_basic_put_get<Map>(); }},
@@ -257,6 +273,8 @@ template <typename Map> void run_map_test_suite(const std::string &map_name) {
         {"large_dataset", []() { test_large_dataset<Map>(); }},
         {"special_characters", []() { test_special_characters<Map>(); }},
         {"tree_string", []() { test_tree_string<Map>(); }},
+        {"lower_bound_no_key_gte_query_after_prefix",
+         []() { test_lower_bound_no_key_gte_query_after_prefix<Map>(); }},
     };
 
     run_test_suite(map_name, tests);

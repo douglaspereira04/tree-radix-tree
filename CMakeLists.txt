@@ -54,6 +54,12 @@ target_compile_features(test_map PRIVATE cxx_std_20)
 target_compile_options(test_map PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(test_map PRIVATE ${CMAKE_SOURCE_DIR})
 
+add_executable(test_random test/test_random.cpp)
+target_link_libraries(test_random PRIVATE trie-kv-core)
+target_compile_features(test_random PRIVATE cxx_std_20)
+target_compile_options(test_random PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(test_random PRIVATE ${CMAKE_SOURCE_DIR})
+
 # Benchmarks
 add_executable(benchmark_prefix benchmarks/benchmark_prefix.cpp)
 target_link_libraries(benchmark_prefix PRIVATE trie-kv-core)

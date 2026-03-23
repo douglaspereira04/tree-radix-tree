@@ -22,7 +22,7 @@ struct Node {
         }
     }
 
-    Node() : next(nullptr), has_value(false) {}
+    Node() : next(nullptr), label(""), has_value(false) {}
 
     explicit Node(const std::string &label) : label(label), has_value(false) {}
     explicit Node(const std::string &label, const ValueType &value) :

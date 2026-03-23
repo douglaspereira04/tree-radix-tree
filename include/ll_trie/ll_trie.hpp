@@ -85,8 +85,27 @@ public:
         size_ = 0;
     }
 
+    Node_ *next_geq_value_node(Node_ *node, const std::string &k) {
+        std::cout << "next_greater_value_node: " << node->label << std::endl;
+        while (node != nullptr) {
+            std::cout << "Node: " << node->label << std::endl;
+            std::cout << "Node has value: " << node->has_value << std::endl;
+            std::cout << "Node label: " << node->label << std::endl;
+            std::cout << "k: " << k << std::endl;
+            if (node->has_value && node->label >= k) {
+                std::cout << "Found node: " << node->label << std::endl;
+                return node;
+            }
+            node = node->next;
+        }
+        std::cout << "No node found" << std::endl;
+        return nullptr;
+    }
+
     Node_ *next_value_node(Node_ *node) {
+        std::cout << "next_value_node: " << node->label << std::endl;
         while (node != nullptr && !node->has_value) {
+            std::cout << "Next node: " << node->label << std::endl;
             node = node->next;
         }
         return node;
@@ -116,8 +135,8 @@ public:
             }
             break;
         }
-
-        return next_value_node(node);
+        std::cout << "Last found node: " << node->label << std::endl;
+        return next_geq_value_node(node, k);
     }
 
     template <size_t N> Node_ *traverse_prefix(const std::string &k) {

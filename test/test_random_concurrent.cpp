@@ -1,5 +1,5 @@
 #include "../utils/test_assertions.h"
-#include "ll_trie/ll_trie.hpp"
+#include "concurrent_ll_trie/concurrent_ll_trie.hpp"
 #include <boost/container/flat_map.hpp>
 #include <atomic>
 #include <chrono>
@@ -51,7 +51,9 @@ void test_random() {
     std::thread monitor_thread(random_iteration_monitor);
 
     std::map<std::string, std::string> ref;
-    ll_trie::LLTrie<std::string, boost::container::flat_map> trie;
+    concurrent_ll_trie::ConcurrentLLTrie<std::string,
+                                         boost::container::flat_map>
+        trie;
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> op_dist(0, 2);
@@ -68,16 +70,18 @@ void test_random() {
                 auto rit = ref.find(key);
                 auto tit = trie.find(key);
                 const bool r_found = (rit != ref.end());
-                const bool t_found = (tit != trie.end());
+                const bool t_found = (tit != trie.shared_end());
                 ASSERT_TRUE(r_found == t_found);
                 if (r_found) {
                     ASSERT_STR_EQ(rit->second, tit->second);
                 }
+                tit.unlock_shared();
             } else if (op == 1) {
                 auto rp = ref.insert({key, key});
                 auto tp = trie.insert({key, key});
                 ASSERT_TRUE(rp.second == tp.second);
                 ASSERT_STR_EQ(rp.first->second, tp.first->second);
+                tp.first.unlock();
             } else {
                 const int scan_start = key_dist(rng);
                 const int scan_count = scan_len_dist(rng);
@@ -91,12 +95,13 @@ void test_random() {
                      ++it) {
                     rv.emplace_back(it->first, it->second);
                 }
-                for (auto it = trie.lower_bound(start_key);
-                     it != trie.end() &&
-                     static_cast<int>(tv.size()) < scan_count;
-                     ++it) {
-                    tv.emplace_back(it->first, it->second);
+                auto tit = trie.lower_bound(start_key);
+                for (; tit != trie.shared_end() &&
+                       static_cast<int>(tv.size()) < scan_count;
+                     ++tit) {
+                    tv.emplace_back(tit->first, tit->second);
                 }
+                tit.unlock_shared();
                 ASSERT_EQ(static_cast<int>(rv.size()),
                           static_cast<int>(tv.size()));
                 for (size_t i = 0; i < rv.size(); ++i) {
@@ -117,7 +122,8 @@ void test_random() {
 
 int main() {
     std::cout << "========================================" << std::endl;
-    std::cout << "  test_random: LLTrie<flat_map> vs std::map" << std::endl;
+    std::cout << "  test_random: ConcurrentLLTrie<flat_map> vs std::map"
+              << std::endl;
     std::cout << "========================================" << std::endl;
 
     std::vector<std::pair<std::string, TestFunction>> tests = {

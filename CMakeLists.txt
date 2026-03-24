@@ -40,6 +40,8 @@ if(DEBUG_LOG)
     target_compile_definitions(trie-kv-core INTERFACE DEBUG_LOG=1)
 endif()
 
+find_package(Boost CONFIG REQUIRED COMPONENTS container)
+
 # Minimal executable to verify build
 add_executable(trie-kv-main main.cpp)
 target_link_libraries(trie-kv-main PRIVATE trie-kv-core)
@@ -60,12 +62,30 @@ target_compile_options(test_map PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(test_map PRIVATE ${CMAKE_SOURCE_DIR})
 
 add_executable(test_random test/test_random.cpp)
-target_link_libraries(test_random PRIVATE trie-kv-core)
+target_link_libraries(test_random PRIVATE trie-kv-core Boost::container)
 target_compile_features(test_random PRIVATE cxx_std_20)
 target_compile_options(test_random PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(test_random PRIVATE ${CMAKE_SOURCE_DIR})
+
+add_executable(test_random_concurrent test/test_random_concurrent.cpp)
+target_link_libraries(test_random_concurrent PRIVATE trie-kv-core Boost::container)
+target_compile_features(test_random_concurrent PRIVATE cxx_std_20)
+target_compile_options(test_random_concurrent PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(test_random_concurrent PRIVATE ${CMAKE_SOURCE_DIR})
+
+add_executable(test_concurrent_ll_trie test/test_concurrent_ll_trie.cpp)
+target_link_libraries(test_concurrent_ll_trie PRIVATE trie-kv-core)
+target_compile_features(test_concurrent_ll_trie PRIVATE cxx_std_20)
+target_compile_options(test_concurrent_ll_trie PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(test_concurrent_ll_trie PRIVATE ${CMAKE_SOURCE_DIR})
 
 # Benchmarks
 add_executable(benchmark_prefix benchmarks/benchmark_prefix.cpp)
 target_link_libraries(benchmark_prefix PRIVATE trie-kv-core)
 target_include_directories(benchmark_prefix PRIVATE ${CMAKE_SOURCE_DIR})
+
+add_executable(benchmark_map benchmarks/benchmark_map.cpp)
+target_link_libraries(benchmark_map PRIVATE trie-kv-core Boost::container)
+target_compile_features(benchmark_map PRIVATE cxx_std_20)
+target_compile_options(benchmark_map PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(benchmark_map PRIVATE ${CMAKE_SOURCE_DIR})

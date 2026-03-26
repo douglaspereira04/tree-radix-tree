@@ -90,3 +90,9 @@ target_link_libraries(benchmark_map PRIVATE trie-kv-core Boost::container absl::
 target_compile_features(benchmark_map PRIVATE cxx_std_20)
 target_compile_options(benchmark_map PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(benchmark_map PRIVATE ${CMAKE_SOURCE_DIR})
+
+add_executable(benchmark_map_threads benchmarks/benchmark_map_threads.cpp)
+target_link_libraries(benchmark_map_threads PRIVATE trie-kv-core Boost::container absl::btree)
+target_compile_features(benchmark_map_threads PRIVATE cxx_std_20)
+target_compile_options(benchmark_map_threads PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(benchmark_map_threads PRIVATE ${CMAKE_SOURCE_DIR})

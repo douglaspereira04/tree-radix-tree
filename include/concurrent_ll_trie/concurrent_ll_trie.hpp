@@ -487,7 +487,7 @@ public:
         return SharedIterator{nullptr};
     }
 
-    size_t count(const std::string &key) const {
+    size_t count(const std::string &key) {
         Node_ *node = traverse_prefix_shared<0>(key);
         if (node != nullptr) {
             size_t count = node->has_value ? 1 : 0;

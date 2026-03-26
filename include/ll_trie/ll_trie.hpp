@@ -305,7 +305,7 @@ public:
         return Iterator{nullptr};
     }
 
-    size_t count(const std::string &key) const {
+    size_t count(const std::string &key) {
         Node_ *node = traverse_prefix<0>(key);
         return node != nullptr && node->has_value ? 1 : 0;
     }

@@ -59,6 +59,7 @@ template <typename Map> void test_erase_nonexistent_noop() {
     Map t;
     ASSERT_EQ(0, static_cast<int>(t.erase("missing")));
     ASSERT_TRUE(t.find("missing") == t.end());
+    ASSERT_EQ(0u, t.count("missing"));
 
     t.insert({"only", "v"});
     ASSERT_EQ(0, static_cast<int>(t.erase("other")));
@@ -73,6 +74,7 @@ template <typename Map> void test_erase_existing_key() {
     t.insert({"k", "v"});
     ASSERT_EQ(1, static_cast<int>(t.erase("k")));
     ASSERT_TRUE(t.find("k") == t.end());
+    ASSERT_EQ(0u, t.count("k"));
     ASSERT_EQ(0u, t.size());
     ASSERT_EQ(0, static_cast<int>(t.erase("k")));
     END_TEST("erase_existing_key")

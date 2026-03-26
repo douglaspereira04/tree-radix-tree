@@ -54,6 +54,117 @@ template <typename Map> void test_overwrite_value() {
     END_TEST("overwrite_value")
 }
 
+template <typename Map> void test_erase_nonexistent_noop() {
+    TEST("erase_nonexistent_noop")
+    Map t;
+    ASSERT_EQ(0, static_cast<int>(t.erase("missing")));
+    ASSERT_TRUE(t.find("missing") == t.end());
+
+    t.insert({"only", "v"});
+    ASSERT_EQ(0, static_cast<int>(t.erase("other")));
+    ASSERT_TRUE(t.find("only") != t.end());
+    ASSERT_EQ(1u, t.size());
+    END_TEST("erase_nonexistent_noop")
+}
+
+template <typename Map> void test_erase_existing_key() {
+    TEST("erase_existing_key")
+    Map t;
+    t.insert({"k", "v"});
+    ASSERT_EQ(1, static_cast<int>(t.erase("k")));
+    ASSERT_TRUE(t.find("k") == t.end());
+    ASSERT_EQ(0u, t.size());
+    ASSERT_EQ(0, static_cast<int>(t.erase("k")));
+    END_TEST("erase_existing_key")
+}
+
+template <typename Map> void test_erase_preserves_other_keys() {
+    TEST("erase_preserves_other_keys")
+    Map t;
+    t.insert({"a", "va"});
+    t.insert({"b", "vb"});
+    t.insert({"c", "vc"});
+    ASSERT_EQ(1, static_cast<int>(t.erase("b")));
+    ASSERT_TRUE(t.find("a") != t.end());
+    ASSERT_TRUE(t.find("b") == t.end());
+    ASSERT_TRUE(t.find("c") != t.end());
+    ASSERT_STR_EQ("va", t.find("a")->second);
+    ASSERT_STR_EQ("vc", t.find("c")->second);
+    ASSERT_EQ(2u, t.size());
+    END_TEST("erase_preserves_other_keys")
+}
+
+template <typename Map> void test_erase_iterator_advances_like_map() {
+    TEST("erase_iterator_advances_like_map")
+    Map t;
+    std::map<std::string, std::string> ref;
+    t.insert({"a", "a"});
+    t.insert({"b", "b"});
+    t.insert({"c", "c"});
+    ref.insert({"a", "a"});
+    ref.insert({"b", "b"});
+    ref.insert({"c", "c"});
+
+    auto it = t.find("b");
+    auto ref_it = ref.find("b");
+    ASSERT_TRUE(it != t.end());
+    auto next_t = t.erase(it);
+    auto next_r = ref.erase(ref_it);
+
+    if (next_r == ref.end()) {
+        ASSERT_TRUE(next_t == t.end());
+    } else {
+        ASSERT_TRUE(next_t != t.end());
+        ASSERT_STR_EQ(next_r->first, next_t->first);
+        ASSERT_STR_EQ(next_r->second, next_t->second);
+    }
+    END_TEST("erase_iterator_advances_like_map")
+}
+
+template <typename Map> void test_erase_iterator_only_element_returns_end() {
+    TEST("erase_iterator_only_element_returns_end")
+    Map t;
+    t.insert({"solo", "v"});
+    auto it = t.begin();
+    ASSERT_TRUE(it != t.end());
+    auto next = t.erase(it);
+    ASSERT_TRUE(next == t.end());
+    ASSERT_EQ(0u, t.size());
+    END_TEST("erase_iterator_only_element_returns_end")
+}
+
+/** Same inserts/erases as std::map; forward iteration from begin must match. */
+template <typename Map> void test_erase_sequence_matches_map() {
+    TEST("erase_sequence_matches_map")
+    Map t;
+    std::map<std::string, std::string> ref;
+    for (auto k : {"x", "y", "z", "m", "n"}) {
+        t.insert({k, k});
+        ref.insert({k, k});
+    }
+    ASSERT_EQ(1, static_cast<int>(t.erase("y")));
+    ASSERT_EQ(1u, ref.erase("y"));
+    ASSERT_EQ(1, static_cast<int>(t.erase("m")));
+    ASSERT_EQ(1u, ref.erase("m"));
+
+    std::vector<std::pair<std::string, std::string>> from_trie;
+    std::vector<std::pair<std::string, std::string>> from_ref;
+    for (auto it = t.begin(); it != t.end(); ++it)
+        from_trie.emplace_back(it->first, it->second);
+    for (auto it = ref.begin(); it != ref.end(); ++it)
+        from_ref.emplace_back(it->first, it->second);
+
+    ASSERT_EQ(static_cast<int>(from_ref.size()),
+              static_cast<int>(from_trie.size()));
+    for (size_t i = 0; i < from_ref.size(); ++i) {
+        ASSERT_STR_EQ(from_ref[i].first, from_trie[i].first);
+        ASSERT_STR_EQ(from_ref[i].second, from_trie[i].second);
+    }
+    ASSERT_EQ(3u, t.size());
+    ASSERT_EQ(3u, ref.size());
+    END_TEST("erase_sequence_matches_map")
+}
+
 template <typename Map> void test_scan_basic() {
     TEST("scan_basic")
     Map t;
@@ -331,6 +442,17 @@ template <typename Map> void run_map_test_suite(const std::string &map_name) {
         {"basic_put_get", []() { test_basic_put_get<Map>(); }},
         {"get_nonexistent_key", []() { test_get_nonexistent_key<Map>(); }},
         {"overwrite_value", []() { test_overwrite_value<Map>(); }},
+        {"erase_nonexistent_noop",
+         []() { test_erase_nonexistent_noop<Map>(); }},
+        {"erase_existing_key", []() { test_erase_existing_key<Map>(); }},
+        {"erase_preserves_other_keys",
+         []() { test_erase_preserves_other_keys<Map>(); }},
+        {"erase_iterator_advances_like_map",
+         []() { test_erase_iterator_advances_like_map<Map>(); }},
+        {"erase_iterator_only_element_returns_end",
+         []() { test_erase_iterator_only_element_returns_end<Map>(); }},
+        {"erase_sequence_matches_map",
+         []() { test_erase_sequence_matches_map<Map>(); }},
         {"scan_basic", []() { test_scan_basic<Map>(); }},
         {"scan_no_matches", []() { test_scan_no_matches<Map>(); }},
         {"scan_empty_prefix", []() { test_scan_empty_prefix<Map>(); }},
@@ -356,7 +478,8 @@ template <typename Map> void run_map_test_suite(const std::string &map_name) {
 int main() {
     std::cout << "========================================" << std::endl;
     std::cout << "  LLTrie Test Suite" << std::endl;
-    std::cout << "  (insert, find, lower_bound, begin, end)" << std::endl;
+    std::cout << "  (insert, find, erase, lower_bound, begin, end)"
+              << std::endl;
     std::cout << "========================================" << std::endl;
 
     std::cout << "\n=== Testing LLTrie<std::string> ===" << std::endl;

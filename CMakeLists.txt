@@ -41,6 +41,7 @@ if(DEBUG_LOG)
 endif()
 
 find_package(Boost CONFIG REQUIRED COMPONENTS container)
+find_package(absl CONFIG REQUIRED)
 
 # Minimal executable to verify build
 add_executable(trie-kv-main main.cpp)
@@ -85,7 +86,7 @@ target_link_libraries(benchmark_prefix PRIVATE trie-kv-core)
 target_include_directories(benchmark_prefix PRIVATE ${CMAKE_SOURCE_DIR})
 
 add_executable(benchmark_map benchmarks/benchmark_map.cpp)
-target_link_libraries(benchmark_map PRIVATE trie-kv-core Boost::container)
+target_link_libraries(benchmark_map PRIVATE trie-kv-core Boost::container absl::btree)
 target_compile_features(benchmark_map PRIVATE cxx_std_20)
 target_compile_options(benchmark_map PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(benchmark_map PRIVATE ${CMAKE_SOURCE_DIR})

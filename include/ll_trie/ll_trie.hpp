@@ -174,8 +174,9 @@ public:
             char k_char = k[k_char_idx];
             UTILS_LOG("node: " + node->label);
             UTILS_LOG(std::string("char: ") + k_char);
-            auto next_node_it = node->children.find(k_char);
-            if (next_node_it != node->children.end()) {
+            auto next_node_it = node->children.lower_bound(k_char);
+            if (next_node_it != node->children.end() &&
+                next_node_it->first == k_char) {
                 // Advance to the next node
                 node = next_node_it->second;
                 k_char_idx++;
@@ -186,11 +187,9 @@ public:
             // Create intermediate node and advance to it
             // Adjust the next pointers
             Node_ *new_node = new Node_();
-            new_node->label = k.substr(0, k_char_idx + 1);
             UTILS_LOG("No child node with char. Creating new "
-                      "node: " +
-                      new_node->label);
-            auto children_it = node->children.upper_bound(k_char);
+                      "node: ");
+            auto &children_it = next_node_it;
             if (children_it != node->children.end()) {
                 new_node->next = children_it->second;
                 UTILS_LOG("Next of new node: " + new_node->next->label);
@@ -236,6 +235,7 @@ public:
         node->label = value.first;
         node->value = value.second;
         node->has_value = true;
+        ++size_;
         return {Iterator{node}, true};
     }
 
@@ -251,6 +251,7 @@ public:
         node->label = std::move(value.first);
         node->value = std::move(value.second);
         node->has_value = true;
+        ++size_;
         return {Iterator{node}, true};
     }
 
@@ -258,10 +259,13 @@ public:
     insert_or_assign(const std::string &key, M &&value) {
         Node_ *node = traverse_creating(key);
 
+        const bool inserted = !node->has_value;
         node->label = key;
         node->value = std::forward<M>(value);
-        bool inserted = !node->has_value;
         node->has_value = true;
+        if (inserted) {
+            ++size_;
+        }
         return {Iterator{node}, inserted};
     }
 
@@ -273,9 +277,8 @@ public:
 
     size_t erase(const std::string &key) {
         Node_ *node = traverse_prefix<0>(key);
-        if (node != nullptr) {
-            Node_ *child = node->second;
-            child->has_value = false;
+        if (node != nullptr && node->has_value) {
+            node->has_value = false;
             node->value = ValueType();
             --size_;
             return 1;
@@ -285,12 +288,11 @@ public:
 
     Iterator erase(Iterator it) {
         Node_ *node = it.node_;
-        if (node != nullptr) {
-            Node_ *child = node->second;
-            child->has_value = false;
+        if (node != nullptr && node->has_value) {
+            node->has_value = false;
             node->value = ValueType();
             --size_;
-            return Iterator{child->next};
+            return Iterator{next_value_node(node->next)};
         }
         return Iterator{nullptr};
     }
@@ -341,14 +343,12 @@ public:
     }
 
     Iterator begin() {
-        auto node_it = root_.children.begin();
-        if (node_it == root_.children.end())
-            return Iterator{nullptr};
-
-        while (!node_it->second->has_value) {
-            node_it = node_it->second->children.begin();
+        if (root_.has_value) {
+            return Iterator{&root_};
         }
-        return Iterator{node_it->second};
+        auto it = Iterator{&root_};
+        it++;
+        return it;
     }
 
     Iterator end() { return Iterator{nullptr}; }

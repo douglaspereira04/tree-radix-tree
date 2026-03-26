@@ -56,7 +56,7 @@ void test_random() {
         trie;
 
     std::mt19937 rng(42);
-    std::uniform_int_distribution<int> op_dist(0, 2);
+    std::uniform_int_distribution<int> op_dist(0, 99);
     std::uniform_int_distribution<int> key_dist(0, MAX_KEY);
     std::uniform_int_distribution<int> scan_len_dist(1, SCAN_MAX_LENGTH);
 
@@ -66,7 +66,11 @@ void test_random() {
             const int k = key_dist(rng);
             const std::string key = key_from_int(k);
 
-            if (op == 0) {
+            if (op < 10) {
+                const auto rr = ref.erase(key);
+                const auto tr = trie.erase(key);
+                ASSERT_EQ(static_cast<int>(rr), static_cast<int>(tr));
+            } else if (op < 40) {
                 auto rit = ref.find(key);
                 auto tit = trie.find(key);
                 const bool r_found = (rit != ref.end());
@@ -76,7 +80,7 @@ void test_random() {
                     ASSERT_STR_EQ(rit->second, tit->second);
                 }
                 tit.unlock_shared();
-            } else if (op == 1) {
+            } else if (op < 70) {
                 auto rp = ref.insert({key, key});
                 auto tp = trie.insert({key, key});
                 ASSERT_TRUE(rp.second == tp.second);
@@ -122,7 +126,8 @@ void test_random() {
 
 int main() {
     std::cout << "========================================" << std::endl;
-    std::cout << "  test_random: ConcurrentLLTrie<flat_map> vs std::map"
+    std::cout << "  test_random: ConcurrentLLTrie<flat_map> vs std::map "
+                 "(10% erase; 30% find; 30% insert; 30% scan)"
               << std::endl;
     std::cout << "========================================" << std::endl;
 

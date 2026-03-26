@@ -177,14 +177,19 @@ public:
         // assumes the node is shared locked
         UTILS_LOG("next_value_node: " + node->label);
         while (node != nullptr) {
-            if (node->has_value) {
-                return node;
+            if (!node->has_value) {
+                if (node->next != nullptr) {
+                    UTILS_LOG("Next node: " + node->label);
+                    Node_ *next_node = node->next;
+                    next_node->lock.lock_shared();
+                    node->lock.unlock_shared();
+                    node = next_node;
+                    continue;
+                }
+                node->lock.unlock_shared();
+                return nullptr;
             }
-            UTILS_LOG("Next node: " + node->label);
-            Node_ *next_node = node->next;
-            next_node->lock.lock_shared();
-            node->lock.unlock_shared();
-            node = next_node;
+            return node;
         }
         return node;
     }
@@ -193,14 +198,19 @@ public:
         UTILS_LOG("next_value_node: " + node->label);
         node->lock.lock();
         while (node != nullptr) {
-            if (node->has_value) {
-                return node;
+            if (!node->has_value) {
+                if (node->next != nullptr) {
+                    UTILS_LOG("Next node: " + node->label);
+                    Node_ *next_node = node->next;
+                    next_node->lock.lock();
+                    node->lock.unlock();
+                    node = next_node;
+                    continue;
+                }
+                node->lock.unlock();
+                return nullptr;
             }
-            UTILS_LOG("Next node: " + node->label);
-            Node_ *next_node = node->next;
-            next_node->lock.lock();
-            node->lock.unlock();
-            node = next_node;
+            return node;
         }
         return node;
     }
@@ -325,8 +335,9 @@ public:
             char k_char = k[k_char_idx];
             UTILS_LOG("node: " + node->label);
             UTILS_LOG(std::string("char: ") + k_char);
-            auto next_node_it = node->children.find(k_char);
-            if (next_node_it != node->children.end()) {
+            auto next_node_it = node->children.lower_bound(k_char);
+            if (next_node_it != node->children.end() &&
+                next_node_it->first == k_char) {
                 // Advance to the next node
                 Node_ *next_node = next_node_it->second;
                 next_node->lock.lock();
@@ -341,11 +352,9 @@ public:
             // Adjust the next pointers
             Node_ *new_node = new Node_();
             new_node->lock.lock();
-            new_node->label = k.substr(0, k_char_idx + 1);
             UTILS_LOG("No child node with char. Creating new "
-                      "node: " +
-                      new_node->label);
-            auto children_it = node->children.upper_bound(k_char);
+                      "node: ");
+            auto &children_it = next_node_it;
             if (children_it != node->children.end()) {
                 Node_ *upper_bound_node = children_it->second;
                 new_node->next = upper_bound_node;
@@ -435,13 +444,19 @@ public:
 
     size_t erase(const std::string &key) {
         Node_ *node = traverse_prefix<0>(key);
-        if (node != nullptr && node->has_value) {
-            node->has_value = false;
-            node->value = ValueType();
-            --size_;
-            node->lock.unlock();
-            return 1;
+        if (node != nullptr) {
+            if (node->has_value) {
+                node->has_value = false;
+                node->value = ValueType();
+                --size_;
+                node->lock.unlock();
+                return 1;
+            } else {
+                node->lock.unlock();
+                return 0;
+            }
         }
+
         return 0;
     }
 
@@ -463,17 +478,23 @@ public:
 
     SharedIterator find(const std::string &key) {
         Node_ *node = traverse_prefix_shared<0>(key);
-        if (node != nullptr && node->has_value) {
-            return SharedIterator{node};
+        if (node != nullptr) {
+            if (node->has_value) {
+                return SharedIterator{node};
+            }
+            node->lock.unlock_shared();
         }
         return SharedIterator{nullptr};
     }
 
     size_t count(const std::string &key) const {
         Node_ *node = traverse_prefix_shared<0>(key);
-        size_t count = node != nullptr && node->has_value ? 1 : 0;
-        node->lock.unlock_shared();
-        return count;
+        if (node != nullptr) {
+            size_t count = node->has_value ? 1 : 0;
+            node->lock.unlock_shared();
+            return count;
+        }
+        return 0;
     }
 
     SharedIterator lower_bound(const std::string &key) {
@@ -488,7 +509,9 @@ public:
         Node_ *node = lower_bound_node(key);
         if (node != nullptr) {
             SharedIterator it = SharedIterator{node};
-            ++it;
+            if (node->label == key) {
+                ++it;
+            }
             return it;
         }
         return SharedIterator{nullptr};
@@ -496,16 +519,26 @@ public:
 
     ValueType &at(const std::string &key) {
         Node_ *node = traverse_prefix_shared<0>(key);
-        if (node != nullptr && node->has_value) {
-            return node->value;
+        if (node != nullptr) {
+            if (node->has_value) {
+                auto v = node->value;
+                node->lock.unlock_shared();
+                return v;
+            }
+            node->lock.unlock_shared();
         }
         throw std::out_of_range("ConcurrentLLTrie::at");
     }
 
     const ValueType &at(const std::string &key) const {
         Node_ *node = traverse_prefix_shared<0>(key);
-        if (node != nullptr && node->has_value) {
-            return node->value;
+        if (node != nullptr) {
+            if (node->has_value) {
+                auto v = node->value;
+                node->lock.unlock_shared();
+                return v;
+            }
+            node->lock.unlock_shared();
         }
         throw std::out_of_range("ConcurrentLLTrie::at");
     }

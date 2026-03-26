@@ -1,4 +1,5 @@
 #include "../utils/test_assertions.h"
+#include "ll_radix_tree/ll_radix_tree.hpp"
 #include "ll_trie/ll_trie.hpp"
 #include <boost/container/flat_map.hpp>
 #include <atomic>
@@ -7,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -42,13 +44,13 @@ std::string key_from_int(int n) {
     return s;
 }
 
-void test_random() {
+template <typename Map> void test_random() {
     TEST("test_random")
 
     std::thread monitor_thread(random_iteration_monitor);
 
     std::map<std::string, std::string> ref;
-    ll_trie::LLTrie<std::string, boost::container::flat_map> trie;
+    Map trie;
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> op_dist(0, 99);
@@ -110,6 +112,7 @@ void test_random() {
                                      std::to_string(ITER) + ": " + e.what());
         }
     }
+
     monitor_thread.join();
     END_TEST("test_random")
 }
@@ -118,13 +121,22 @@ void test_random() {
 
 int main() {
     std::cout << "========================================" << std::endl;
-    std::cout << "  test_random: LLTrie<flat_map> vs std::map (10% erase; "
-                 "30% find; 30% insert; 30% scan)"
+    std::cout << "  test_random: Map vs std::map (10% erase; 30% find; 30% "
+                 "insert; 30% scan)"
               << std::endl;
     std::cout << "========================================" << std::endl;
 
     std::vector<std::pair<std::string, TestFunction>> tests = {
-        {"test_random", test_random},
+        {"test_random LLTrie<string,flat_map>",
+         [] {
+             test_random<
+                 ll_trie::LLTrie<std::string, boost::container::flat_map>>();
+         }},
+        {"test_random LLRadixTree<string,flat_map>",
+         [] {
+             test_random<ll_radix_tree::LLRadixTree<
+                 std::string, boost::container::flat_map>>();
+         }},
     };
     run_test_suite("test_random", tests);
 

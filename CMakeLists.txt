@@ -35,6 +35,8 @@ target_include_directories(trie-kv-core INTERFACE
     ${CMAKE_SOURCE_DIR}/include
 )
 
+target_link_libraries(trie-kv-core INTERFACE PkgConfig::GRAPHVIZ)
+
 option(DEBUG_LOG "Enable LLTrie debug logging (UTILS_LOG macro)" OFF)
 if(DEBUG_LOG)
     target_compile_definitions(trie-kv-core INTERFACE DEBUG_LOG=1)
@@ -42,6 +44,9 @@ endif()
 
 find_package(Boost CONFIG REQUIRED COMPONENTS container)
 find_package(absl CONFIG REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GRAPHVIZ REQUIRED IMPORTED_TARGET libgvc)
 
 # Minimal executable to verify build
 add_executable(trie-kv-main main.cpp)

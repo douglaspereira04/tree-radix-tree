@@ -1,4 +1,5 @@
 #include "concurrent_ll_trie/concurrent_ll_trie.hpp"
+#include "ll_radix_tree/ll_radix_tree.hpp"
 #include "ll_trie/ll_trie.hpp"
 #include <absl/container/btree_map.h>
 #include <atomic>
@@ -21,7 +22,7 @@ using SteadyClock = std::chrono::steady_clock;
 
 // Same globals as benchmark_map.cpp
 constexpr int FACTOR = 1000;
-constexpr int MAX_KEY = FACTOR;
+constexpr int MAX_KEY = 100 * FACTOR;
 constexpr int SCAN_MAX_LENGTH = FACTOR / 10;
 constexpr int ITERATIONS = 1000 * FACTOR;
 
@@ -61,13 +62,7 @@ void random_iteration_monitor() {
     }
 }
 
-std::string key_from_int(int n) {
-    const int width = static_cast<int>(std::to_string(MAX_KEY).size());
-    std::string s = std::to_string(n);
-    if (static_cast<int>(s.size()) >= width)
-        return s;
-    return std::string(static_cast<size_t>(width - s.size()), '0') + s;
-}
+std::string key_from_int(int n) { return std::to_string(n); }
 
 /** Same workload as benchmark_map.cpp; N threads share one map and \c ITER.
  * Non-thread-safe maps use \c mtx: exclusive for insert/erase, shared for find
@@ -261,6 +256,12 @@ int main(int argc, char **argv) {
         ll_trie::LLTrie<std::string, boost::container::flat_map>>(num_threads);
     std::cout << "ll_trie::LLTrie<string,flat_map> (+mutex):          "
               << ms_ll_trie << " ms\n";
+
+    const double ms_ll_radix = run_mutex_map_benchmark<
+        ll_radix_tree::LLRadixTree<std::string, boost::container::flat_map>>(
+        num_threads);
+    std::cout << "ll_radix_tree::LLRadixTree<string,flat_map> (+mutex): "
+              << ms_ll_radix << " ms\n";
 
     const double ms_concurrent_ll_trie =
         benchmark_concurrent_ll_trie_workload_threaded<

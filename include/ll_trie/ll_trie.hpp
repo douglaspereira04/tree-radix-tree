@@ -329,17 +329,10 @@ public:
     }
 
     ValueType &at(const std::string &key) {
-        auto it = root_.values.find(key);
-        if (it == root_.values.end())
+        Node_ *node = traverse_prefix<0>(key);
+        if (node == nullptr)
             throw std::out_of_range("LLTrie::at");
-        return it->second;
-    }
-
-    const ValueType &at(const std::string &key) const {
-        auto it = root_.values.find(key);
-        if (it == root_.values.end())
-            throw std::out_of_range("LLTrie::at");
-        return it->second;
+        return node->value;
     }
 
     Iterator begin() {

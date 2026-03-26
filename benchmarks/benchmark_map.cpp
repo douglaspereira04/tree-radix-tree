@@ -1,4 +1,5 @@
 #include "concurrent_ll_trie/concurrent_ll_trie.hpp"
+#include "ll_radix_tree/ll_radix_tree.hpp"
 #include "ll_trie/ll_trie.hpp"
 #include <absl/container/btree_map.h>
 #include <boost/container/flat_map.hpp>
@@ -17,9 +18,9 @@ using SteadyClock = std::chrono::steady_clock;
 
 // Match test_random workload scale (adjust for faster smoke runs if needed).
 constexpr int FACTOR = 1000;
-constexpr int MAX_KEY = FACTOR / 10;
-constexpr int SCAN_MAX_LENGTH = FACTOR / 100;
-constexpr int ITERATIONS = 1000 * FACTOR;
+constexpr int MAX_KEY = 100 * FACTOR;
+constexpr int SCAN_MAX_LENGTH = FACTOR / 10;
+constexpr int ITERATIONS = 10000 * FACTOR;
 
 std::atomic<int> ITER = 0;
 
@@ -161,6 +162,12 @@ int main(int argc, char **argv) {
         ll_trie::LLTrie<std::string, boost::container::flat_map>>();
     std::cout << "ll_trie::LLTrie<string,boost::container::flat_map>: "
               << ms_ll_trie << " ms\n";
+
+    const double ms_ll_radix = benchmark_map_workload<
+        ll_radix_tree::LLRadixTree<std::string, boost::container::flat_map>>();
+    std::cout
+        << "ll_radix_tree::LLRadixTree<string,boost::container::flat_map>: "
+        << ms_ll_radix << " ms\n";
 
     const double ms_concurrent_ll_trie =
         benchmark_concurrent_ll_trie_workload<std::string,

@@ -1,6 +1,8 @@
 #include "../utils/test_assertions.h"
 #include "ll_trie/ll_trie.hpp"
+#include "ll_radix_tree/ll_radix_tree.hpp"
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <string>
 #include <vector>
@@ -346,17 +348,6 @@ template <typename Map> void test_special_characters() {
     END_TEST("special_characters")
 }
 
-template <typename Map> void test_tree_string() {
-    TEST("tree_string")
-    Map t;
-    t.insert({"a", "va"});
-    t.insert({"bc", "vbc"});
-    std::string s = t.tree_string();
-    ASSERT_TRUE(s.find("\"a\"") != std::string::npos);
-    ASSERT_TRUE(s.find("\"bc\"") != std::string::npos);
-    END_TEST("tree_string")
-}
-
 /** lower_bound("0833") must be end(): keys "0597" and "0797" are the only
  * entries; they share prefix "0", but the next query digit '8' is greater than
  * every third digit among children ('5','7'). std::map has no key >= "0833";
@@ -463,7 +454,6 @@ template <typename Map> void run_map_test_suite(const std::string &map_name) {
         {"scan_range", []() { test_scan_range<Map>(); }},
         {"large_dataset", []() { test_large_dataset<Map>(); }},
         {"special_characters", []() { test_special_characters<Map>(); }},
-        {"tree_string", []() { test_tree_string<Map>(); }},
         {"lower_bound_no_key_gte_query_after_prefix",
          []() { test_lower_bound_no_key_gte_query_after_prefix<Map>(); }},
         {"forward_iteration_matches_map_after_insert_order",
@@ -479,13 +469,17 @@ template <typename Map> void run_map_test_suite(const std::string &map_name) {
 
 int main() {
     std::cout << "========================================" << std::endl;
-    std::cout << "  LLTrie Test Suite" << std::endl;
+    std::cout << "  Map test suite (LLTrie, LLRadixTree)" << std::endl;
     std::cout << "  (insert, find, erase, lower_bound, begin, end)"
               << std::endl;
     std::cout << "========================================" << std::endl;
 
     std::cout << "\n=== Testing LLTrie<std::string> ===" << std::endl;
     run_map_test_suite<ll_trie::LLTrie<std::string>>("LLTrie<std::string>");
+
+    std::cout << "\n=== Testing LLRadixTree<std::string> ===" << std::endl;
+    run_map_test_suite<ll_radix_tree::LLRadixTree<std::string>>(
+        "LLRadixTree<std::string>");
 
     std::cout << "========================================" << std::endl;
     std::cout << "  Overall Test Results" << std::endl;

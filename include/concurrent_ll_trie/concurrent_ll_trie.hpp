@@ -123,8 +123,11 @@ public:
     }
 
     ConcurrentLLTrieSharedIterator next() {
-        node_->next->lock.lock_shared();
-        return ConcurrentLLTrieSharedIterator(node_->next);
+        if (node_->next != nullptr) {
+            node_->next->lock.lock_shared();
+            return ConcurrentLLTrieSharedIterator(node_->next);
+        }
+        return ConcurrentLLTrieSharedIterator(nullptr);
     }
 
     Node_ *node_ = nullptr;

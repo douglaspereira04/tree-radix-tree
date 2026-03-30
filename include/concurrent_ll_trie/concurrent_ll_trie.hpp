@@ -122,6 +122,11 @@ public:
         }
     }
 
+    ConcurrentLLTrieSharedIterator next() {
+        node_->next->lock.lock_shared();
+        return ConcurrentLLTrieSharedIterator(node_->next);
+    }
+
     Node_ *node_ = nullptr;
 };
 
